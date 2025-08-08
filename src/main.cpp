@@ -17,13 +17,25 @@ int main()
 	if (IsDebuggerPresent())
 	{
 		std::cout << "running in visual studio\n";
-		serverFunction();
 	}
 	else
 	{
 		std::cout << "running from exe\n";
+	}
+
+	std::cout << "Run as (s)erver or (c)lient? ";
+	char choice;
+	std::cin >> choice;
+
+	if (choice == 's' || choice == 'S') {
+		serverFunction();
+	}
+	else {
 		clientFunction();
 	}
+
+	enet_deinitialize();
+	return 0;
 
 	enet_deinitialize();
 	return 0;
