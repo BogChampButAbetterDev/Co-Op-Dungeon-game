@@ -3,7 +3,15 @@
 #include <iostream>
 #include <unordered_map>
 
-std::unordered_map<ENetPeer*, vec2> players;
+struct ServerPlayer
+{
+	int clientID;
+	vec2 pos;
+};
+
+std::unordered_map<ENetPeer*, ServerPlayer> players;
+
+int nextClientID = 1;
 
 void serverFunction()
 {
@@ -27,28 +35,55 @@ void serverFunction()
 			switch (event.type)
 			{
 			case ENET_EVENT_TYPE_CONNECT:
+			{
 				std::cout << "Player joined!\n";
-				players[event.peer] = { 0, 0 };
+				int id = nextClientID++;
+
+				players[event.peer] = ServerPlayer{ id, vec2{0, 0} };
+
+				WelcomePacket pkt;
+				pkt.type = PACKET_WELCOME;
+				pkt.clientID = id;
+
+				ENetPacket* welcome = enet_packet_create(&pkt, sizeof(pkt), ENET_PACKET_FLAG_RELIABLE);
+				enet_peer_send(event.peer, 0, welcome);
+
 				break;
+			}
+
 			case ENET_EVENT_TYPE_RECEIVE:
+			{
 				if (event.packet->dataLength >= sizeof(PositionPacket))
 				{
 					PositionPacket pkt;
 					memcpy(&pkt, event.packet->data, sizeof(PositionPacket));
-					players[event.peer] = pkt.position;
 
-					for (auto& [peer, pos] : players)
+					if (players.find(event.peer) != players.end())
 					{
-						if (peer->state == ENET_PEER_STATE_CONNECTED)
+						players[event.peer].pos = pkt.position;
+						pkt.clientID = players[event.peer].clientID;
+
+						for (auto& [peer, pos] : players)
 						{
-							ENetPacket* packet = enet_packet_create(&pkt, sizeof(pkt), ENET_PACKET_FLAG_UNSEQUENCED);
-							enet_peer_send(peer, 0, packet);
+							if (peer->state == ENET_PEER_STATE_CONNECTED)
+							{
+								ENetPacket* packet = enet_packet_create(&pkt, sizeof(pkt), ENET_PACKET_FLAG_UNSEQUENCED);
+								enet_peer_send(peer, 0, packet);
+							}
 						}
 					}
 				}
 
 				enet_packet_destroy(event.packet);
 				break;
+			}
+
+			case ENET_EVENT_TYPE_DISCONNECT:
+			{
+				std::cout << "Player left!\n";
+				players.erase(event.peer);
+				break;
+			}
 			}
 		}
 	}

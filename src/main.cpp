@@ -1,5 +1,6 @@
 #include <iostream>
 #include <enet/enet.h>
+#include <Windows.h>
 
 void serverFunction();
 void clientFunction();
@@ -12,11 +13,17 @@ int main()
 		return 1;
 	}
 
-	std::cout << "Run as (s)erver or (c)lient\n";
-	char c;
-	std::cin >> c;
-	if (c == 's') serverFunction();
-	else clientFunction();
+	// use this to figure out where to search for files
+	if (IsDebuggerPresent())
+	{
+		std::cout << "running in visual studio\n";
+		serverFunction();
+	}
+	else
+	{
+		std::cout << "running from exe\n";
+		clientFunction();
+	}
 
 	enet_deinitialize();
 	return 0;

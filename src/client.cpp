@@ -3,10 +3,13 @@
 #include <SDL.h>
 #include <GL/gl.h>
 #include <iostream>
-#include <vector>
+//#include <vector>
+#include <unordered_map>
 
 vec2 myPos{ 0, 0 };
-std::vector<vec2> otherPlayers;
+std::unordered_map<int, RemotePlayer> otherPlayers;
+
+int myClientID = -1;
 
 void drawSquare(vec2 pos, float r, float  g, float b)
 {
@@ -43,7 +46,7 @@ void clientFunction()
 
 	while (running)
 	{
-		while (SDL_PollEvent(&sdlEvent));
+		while (SDL_PollEvent(&sdlEvent))
 		{
 			if (sdlEvent.type == SDL_QUIT) running = false;
 		}
@@ -54,31 +57,51 @@ void clientFunction()
 		if (state[SDL_SCANCODE_A]) myPos.x -= 0.01f;
 		if (state[SDL_SCANCODE_D]) myPos.x += 0.01f;
 
-		PositionPacket pkt;
-		pkt.clientID = 0;
-		pkt.position = myPos;
-		ENetPacket* packet = enet_packet_create(&pkt, sizeof(pkt), ENET_PACKET_FLAG_UNSEQUENCED);
-		enet_peer_send(peer, 0, packet);
+		if (myClientID != -1)
+		{
+			PositionPacket pkt;
+			pkt.clientID = myClientID;
+			pkt.position = myPos;
+			ENetPacket* packet = enet_packet_create(&pkt, sizeof(pkt), ENET_PACKET_FLAG_UNSEQUENCED);
+			enet_peer_send(peer, 0, packet);
+		}
 
 		ENetEvent event;
 		otherPlayers.clear();
 		while (enet_host_service(client, &event, 0) > 0)
 		{
+			if (event.type == ENET_EVENT_TYPE_RECEIVE && event.packet->dataLength >= sizeof(WelcomePacket))
+			{
+				PacketType type;
+				memcpy(&type, event.packet->data, sizeof(PacketType));
+
+				if (type == PACKET_WELCOME)
+				{
+					WelcomePacket pkt;
+					memcpy(&pkt, event.packet->data, sizeof(WelcomePacket));
+					myClientID = pkt.clientID;
+					std::cout << "Recieved myclientID: " << myClientID << "\n";
+				}
+			}
 			if (event.type == ENET_EVENT_TYPE_RECEIVE && event.packet->dataLength >= sizeof(PositionPacket))
 			{
 				PositionPacket pkt;
 				memcpy(&pkt, event.packet->data, sizeof(PositionPacket));
-				otherPlayers.push_back(pkt.position);
-				enet_packet_destroy(event.packet);
+				
+				if (pkt.clientID != myClientID) {
+					otherPlayers[pkt.clientID] = { pkt.clientID, pkt.position };
+				}
 			}
 		}
+
+		enet_packet_destroy(event.packet); 
 
 		glClear(GL_COLOR_BUFFER_BIT);
 		drawSquare(myPos, 0, 1, 0);
 
-		for (auto& pos : otherPlayers)
+		for (auto& [id, rp] : otherPlayers)
 		{
-			drawSquare(pos, 1, 0, 0);
+			drawSquare(rp.position, 1, 0, 0); 
 		}
 
 		SDL_GL_SwapWindow(window);
