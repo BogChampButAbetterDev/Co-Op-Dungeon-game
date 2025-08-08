@@ -27,7 +27,7 @@ void clientFunction()
 	ENetHost* client = enet_host_create(NULL, 1, 2, 0, 0);
 	ENetAddress address;
 	ENetPeer* peer;
-	enet_address_set_host(&address, "localhost");
+	enet_address_set_host(&address, "192.168.56.1");
 	address.port = 3987;
 
 	peer = enet_host_connect(client, &address, 2, 0);
