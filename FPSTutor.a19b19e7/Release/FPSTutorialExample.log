@@ -1,0 +1,11 @@
+﻿client.obj : error LNK2001: unresolved external symbol _enet_host_connect
+client.obj : error LNK2001: unresolved external symbol _enet_host_service
+client.obj : error LNK2001: unresolved external symbol _enet_address_set_host
+client.obj : error LNK2001: unresolved external symbol _enet_peer_send
+client.obj : error LNK2001: unresolved external symbol _enet_host_destroy
+client.obj : error LNK2001: unresolved external symbol _enet_packet_create
+client.obj : error LNK2001: unresolved external symbol _enet_packet_destroy
+client.obj : error LNK2001: unresolved external symbol _enet_host_create
+main.obj : error LNK2001: unresolved external symbol _enet_initialize
+main.obj : error LNK2001: unresolved external symbol _enet_deinitialize
+C:\Users\noah\Desktop\FPSTutorialExample\Release\FPSTutorialExample.exe : fatal error LNK1120: 10 unresolved externals
